@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 python3 enformer_ft_train.py \
-            --tpu_name="node-15" \
-            --tpu_zone="us-central1-a" \
+            --tpu_name="pod" \
+            --tpu_zone="us-east1-d" \
             --wandb_project="enformer_fine_tuning" \
             --wandb_user="njaved" \
             --wandb_sweep_name="aformer_initial_run" \
@@ -23,7 +23,7 @@ python3 enformer_ft_train.py \
             --rectify=True \
             --slow_step_frac=0.5 \
             --sync_period=6 \
-            --num_parallel=768 \
+            --num_parallel=8 \
             --savefreq=4 \
             --use_fft_prior="True" \
             --freq_limit_scale="0.07" \

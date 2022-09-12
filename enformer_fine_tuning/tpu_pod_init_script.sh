@@ -14,4 +14,9 @@ export TPU_NAME=pod
 export ZONE=us-east1-d 
 export TPU_LOAD_LIBRARY=0
 
+
+gsutil cp gs://picard-testing-176520/sonnet_weights.tar.gz .
+tar -xzvf sonnet_weights.tar.gz
+
+
 wandb login
