@@ -8,8 +8,8 @@ python3 enformer_ft_train.py \
             --wandb_sweep_name="aformer_initial_run" \
             --gcs_project="picard-testing-176520" \
             --gcs_path="gs://picard-testing-176520/BE_paper_pretraining/tfrecords" \
-            --num_epochs=30 \
-            --warmup_frac=0.15 \
+            --num_epochs=50 \
+            --warmup_frac=1.0 \
             --patience=6\
             --min_delta=0.001 \
             --num_heads=4 \

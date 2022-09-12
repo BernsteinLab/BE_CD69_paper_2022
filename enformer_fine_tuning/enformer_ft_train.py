@@ -249,6 +249,7 @@ def main():
                 val_step(val_data)
                 
                 print('val_loss: ' + str(metric_dict['hg_val'].result().numpy()))
+                val_losses.append(metric_dict['hg_val'].result().numpy())
                 wandb.log({'val_loss': metric_dict['hg_val'].result().numpy()},
                           step=epoch_i)
                 print('pearsonsR: ')
