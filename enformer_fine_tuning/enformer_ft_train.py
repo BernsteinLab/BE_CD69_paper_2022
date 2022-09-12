@@ -285,7 +285,7 @@ def main():
                                                         patience=wandb.config.patience,
                                                         patience_counter=patience_counter,
                                                         min_delta=wandb.config.min_delta,
-                                                        model=model,
+                                                        model=enformer_model,
                                                         save_directory=wandb.config.model_save_dir,
                                                         saved_model_basename=wandb.config.model_save_basename)
                 #plt.close('all')
@@ -298,7 +298,7 @@ def main():
                     
             print('saving model at: epoch ' + str(epoch_i))
             print('best model was at: epoch ' + str(best_epoch))
-            model.save_weights(wandb.config.model_save_dir + "/" + wandb.config.model_save_basename + "_" + wandb.run.name + "/final/saved_model")
+            enformer_model.save_weights(wandb.config.model_save_dir + "/" + wandb.config.model_save_basename + "_" + wandb.run.name + "/final/saved_model")
 
     sweep_id = wandb.sweep(sweep_config, project=args.wandb_project)
     wandb.agent(sweep_id, function=sweep_train)
