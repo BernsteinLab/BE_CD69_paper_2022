@@ -18,13 +18,13 @@ python3 enformer_ft_train.py \
             --lr_base="5.0e-04" \
             --min_lr="5.0e-6" \
             --gradient_clip="0.2" \
-            --weight_decay_frac="1.0e-04" \
+            --weight_decay_frac="1.0e-05" \
             --epsilon=1.0e-10 \
             --rectify=True \
             --slow_step_frac=0.5 \
             --sync_period=6 \
             --num_parallel=8 \
-            --savefreq=10 \
+            --savefreq=8 \
             --use_fft_prior="True" \
             --freq_limit_scale="0.086" \
             --fft_prior_scale="0.25" 

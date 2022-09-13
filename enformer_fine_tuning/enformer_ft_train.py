@@ -175,7 +175,7 @@ def main():
             options = tf.train.CheckpointOptions(experimental_io_device="/job:localhost")
             checkpoint = tf.train.Checkpoint(module=enformer_model)#,options=options)
             tf.saved_model.LoadOptions(experimental_io_device='/job:localhost')
-            latest = tf.train.latest_checkpoint("sonnet_weights")
+            latest = tf.train.latest_checkpoint("checkpoint/sonnet_weights")
             checkpoint.restore(latest,options=options).assert_existing_objects_matched()
             
     
@@ -288,7 +288,7 @@ def main():
                                                         model=enformer_model,
                                                         save_directory=wandb.config.model_save_dir,
                                                         saved_model_basename=wandb.config.model_save_basename,
-                                                        checkpoint)
+                                                        checkpoint=checkpoint)
                 #plt.close('all')
                 print('patience counter at: ' + str(patience_counter))
                 for key, item in metric_dict.items():

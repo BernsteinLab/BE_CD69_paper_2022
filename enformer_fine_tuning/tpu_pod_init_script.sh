@@ -9,6 +9,7 @@ sudo pip3 install tensorflow-probability
 sudo pip3 install seaborn
 sudo pip3 install einops
 sudo pip3 install tqdm
+sudo pip3 install scipy
 sudo pip3 install wandb
 sudo pip3 install plotly
 sudo pip3 install tensorboard-plugin-profile==2.4.0
