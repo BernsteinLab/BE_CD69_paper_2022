@@ -372,7 +372,8 @@ def early_stopping(current_val_loss,
                    min_delta,
                    model,
                    save_directory,
-                   saved_model_basename):
+                   saved_model_basename,
+                   checkpoint):
     """early stopping function
     Args:
         current_val_loss: current epoch val loss
@@ -417,8 +418,9 @@ def early_stopping(current_val_loss,
             print('Saving model...')
             model_name = save_directory + "/" + \
                             saved_model_basename + "/iteration_" + \
-                                str(current_epoch) + "/saved_model"
-            model.save_weights(model_name)
+                                str(current_epoch) + "/checkpoint"
+            #model.save_weights(model_name)
+            checkpoint.save(model_name)
             ### write to logging file in saved model dir to model parameters and current epoch info
             
         patience_counter = 0
