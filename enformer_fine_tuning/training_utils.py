@@ -207,16 +207,17 @@ def deserialize_tr(serialized_example,input_length,max_shift, out_length,num_tar
     sequence = tf.cast(sequence, tf.float32)
     sequence = tf.slice(sequence, [shift,0],[input_length,-1])
     
-    if rev_comp == 1:
-        sequence = tf.gather(sequence, [3, 2, 1, 0], axis=-1)
-        sequence = tf.reverse(sequence, axis=[0])
-    
     target = tf.io.decode_raw(example['target'], tf.float16)
     target = tf.reshape(target,
                         (out_length, num_targets))
     target = tf.slice(target,
                       [320,0],
                       [896,-1])
+    
+    if rev_comp == 1:
+        sequence = tf.gather(sequence, [3, 2, 1, 0], axis=-1)
+        sequence = tf.reverse(sequence, axis=[0])
+        target = tf.reverse(target,axis=[0])
     
     return {'sequence': tf.ensure_shape(sequence,
                                         [input_length,4]),
@@ -250,6 +251,7 @@ def deserialize_val(serialized_example,input_length,max_shift, out_length,num_ta
     if rev_comp == 1:
         sequence = tf.gather(sequence, [3, 2, 1, 0], axis=-1)
         sequence = tf.reverse(sequence, axis=[0])
+        target = tf.reverse(target,axis=[0])
     
     target = tf.io.decode_raw(example['target'], tf.float16)
     target = tf.reshape(target,
