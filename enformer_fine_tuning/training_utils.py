@@ -158,7 +158,7 @@ def return_train_val_functions(model,
             gradients = tape.gradient(loss, vars_subset)
                           #*model.trunk.submodules[0].trainable_variables])
             #gradients, _ = tf.clip_by_global_norm(gradients, gradient_clip) 
-            optimizer.apply_gradients(zip(gradients, heads_vars))
+            optimizer.apply_gradients(zip(gradients, vars_subset))
             
             metric_dict["hg_tr"].update_state(loss)
 
