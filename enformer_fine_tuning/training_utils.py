@@ -155,10 +155,10 @@ def return_train_val_functions(model,
                 fourier_loss = fourier_att_prior_loss(input_grads) * fourier_loss_scale
                 loss = loss + fourier_loss
                 
-            gradients = tape.gradient(loss, vars_subset)
+            gradients = tape.gradient(loss, heads_vars)
                           #*model.trunk.submodules[0].trainable_variables])
             #gradients, _ = tf.clip_by_global_norm(gradients, gradient_clip) 
-            optimizer.apply_gradients(zip(gradients, vars_subset))
+            optimizer.apply_gradients(zip(gradients, heads_vars))
             
             metric_dict["hg_tr"].update_state(loss)
 
