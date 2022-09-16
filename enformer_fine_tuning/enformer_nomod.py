@@ -26,7 +26,7 @@ Pushmeet Kohli1, David R. Kelley2*
 import inspect
 from typing import Any, Callable, Dict, Optional, Text, Union, Iterable
 
-import attention_module
+import attention_module_nomod as attention_module
 import numpy as np
 import sonnet as snt
 import tensorflow as tf

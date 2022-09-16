@@ -28,7 +28,7 @@ from tensorflow import strings as tfs
 from tensorflow.keras import mixed_precision
 
 ## custom modules
-import enformer as enformer
+import enformer_nomod as enformer
 import metrics as metrics
 import training_utils_full as training_utils
 
