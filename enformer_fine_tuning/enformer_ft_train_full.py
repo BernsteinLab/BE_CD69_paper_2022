@@ -30,7 +30,7 @@ from tensorflow.keras import mixed_precision
 ## custom modules
 import enformer as enformer
 import metrics as metrics
-import training_utils
+import training_utils_full as training_utils
 
 import seaborn as sns
 from scipy.stats.stats import pearsonr
