@@ -22,7 +22,7 @@ python3 enformer_ft_train.py \
             --slow_step_frac=0.5 \
             --sync_period=6 \
             --num_parallel=8 \
-            --savefreq=8 \
+            --savefreq=10 \
             --use_fft_prior="True" \
             --freq_limit_scale="0.086" \
             --fft_prior_scale="0.25" 
