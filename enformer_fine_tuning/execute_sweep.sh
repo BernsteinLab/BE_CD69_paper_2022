@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 python3 enformer_ft_train.py \
-            --tpu_name="pod" \
-            --tpu_zone="us-east1-d" \
+            --tpu_name="node-15" \
+            --tpu_zone="us-central1-a" \
             --wandb_project="enformer_fine_tuning" \
             --wandb_user="njaved" \
             --wandb_sweep_name="aformer_initial_run" \
@@ -17,8 +17,6 @@ python3 enformer_ft_train.py \
             --model_save_basename="aformer_initial_tests" \
             --lr_base="5.0e-04" \
             --min_lr="5.0e-6" \
-            --gradient_clip="0.2" \
-            --weight_decay_frac="1.0e-05" \
             --epsilon=1.0e-10 \
             --rectify=True \
             --slow_step_frac=0.5 \

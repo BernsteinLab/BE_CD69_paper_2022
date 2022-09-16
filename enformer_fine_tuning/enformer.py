@@ -134,8 +134,6 @@ class Enformer(snt.Module):
 
         crop_final = TargetLengthCrop1D(TARGET_LENGTH, name='target_input')
 
-        stop_grad = stop_gradient(name='stop_grad')
-
         final_pointwise = Sequential(lambda: [
             conv_block(channels * 2, 1),
             snt.Dropout(dropout_rate / 8),

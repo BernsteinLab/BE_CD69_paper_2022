@@ -23,7 +23,7 @@ import tensorflow as tf
 import sonnet as snt
 import tensorflow.experimental.numpy as tnp
 import tensorflow_addons as tfa
-from tensorflow import strings as tfs
+from tensorflow import strings as tfsf
 from tensorflow.keras import mixed_precision
 
 import pandas as pd
@@ -113,7 +113,8 @@ def return_train_val_functions(model,
     metric_dict['pearsonsR'] = metrics.MetricDict({'PearsonR': metrics.PearsonR(reduce_axis=(0,1))})
     
     metric_dict['R2'] = metrics.MetricDict({'R2': metrics.R2(reduce_axis=(0,1))})
-
+    poisson_loss = tf.keras.losses.Poisson(reduction=tf.keras.losses.Reduction.NONE)
+    @tf.function
     def dist_train_step_transfer(iterator):
         @tf.function(jit_compile=True)
         def train_step(inputs):
@@ -122,49 +123,32 @@ def return_train_val_functions(model,
             sequence=tf.cast(inputs['sequence'],
                              dtype=tf.float32)
             with tf.GradientTape(watch_accessed_variables=False) as tape:
-                with tf.GradientTape(watch_accessed_variables=False) as input_grad_tape:
+                with tf.GradientTape() as input_grad_tape:
                     input_grad_tape.watch(sequence)
-                    #heads_vars = [v for v in model.trainable_variables if "heads" in v.name]
-                    all_vars = model.trainable_variables
-                    #print('all_vars')
-                    #print(all_vars)
-                    heads_vars = [x for x in all_vars if "new_head" in x.name]
-                    #print('heads_vars')
-                    #print(heads_vars)
-                    for var in heads_vars:
+                    #all_vars = model.trainable_variables
+                    vars_subset = model.heads.trainable_variables + \
+                                    model.trunk.submodules[4].trainable_variables #+ \
+                                        #model.trunk.submodules[0].trainable_variables
+                    for var in vars_subset:
                         tape.watch(var)
-                    stem_vars = [x for x in all_vars if "stem" in x.name]
-                    #print('stem_vars')
-                    #print(stem_vars)
-                    for var in stem_vars:
-                        tape.watch(var)
-                    vars_subset = [x for x in all_vars if (("new_head" in x.name) or ("stem" in x.name))]
-                    #print('vars_subset')
-                    #print(vars_subset)
                     output = model(sequence, is_training=True)
-                #print(output)
                 input_grads = input_grad_tape.gradient(output, 
                                                        sequence)
-                
-                loss = tf.reduce_sum(poisson(target,
-                                             output)) * (1. / global_batch_size)
-                #print(input_grads)
-                #if use_prior and fourier_loss_scale is not None:
+                loss = tf.reduce_sum(poisson_loss(target,
+                                                  output)) * (1. / global_batch_size)
                 input_grads = input_grads * sequence
-                #print(input_grads)
+                
                 fourier_loss = fourier_att_prior_loss(input_grads) * fourier_loss_scale
                 loss = loss + fourier_loss
                 
-            gradients = tape.gradient(loss, heads_vars)
-                          #*model.trunk.submodules[0].trainable_variables])
-            #gradients, _ = tf.clip_by_global_norm(gradients, gradient_clip) 
-            optimizer.apply_gradients(zip(gradients, heads_vars))
-            
+            gradients = tape.gradient(loss, vars_subset)
+            optimizer.apply_gradients(zip(gradients, vars_subset))
             metric_dict["hg_tr"].update_state(loss)
 
         for _ in tf.range(train_steps): ## for loop within @tf.fuction for improved TPU performance
             strategy.run(train_step, args=(next(iterator),))
             
+    @tf.function
     def dist_val_step(iterator): #input_batch, model, optimizer, organism, gradient_clip):
         @tf.function(jit_compile=True)
         def val_step(inputs):

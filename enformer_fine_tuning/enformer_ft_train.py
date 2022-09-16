@@ -73,9 +73,6 @@ def main():
                 'gradient_clip': {
                     'values': [float(x) for x in args.gradient_clip.split(',')]
                 },
-                'weight_decay_frac': {
-                    'values': [float(x) for x in args.weight_decay_frac.split(',')]
-                },
                 'epsilon': {
                     'values':[args.epsilon]
                 },
@@ -136,7 +133,9 @@ def main():
             wandb.config.sync_period=args.sync_period
             wandb.config.slow_step_frac=args.slow_step_frac
             
-            wandb.run.name = '_'.join(['LR' + str(wandb.config.lr_base)])
+            wandb.run.name = '_'.join(['LR' + str(wandb.config.lr_base),
+                                        'FFTscale-' + str(wandb.config.fft_prior_scale),
+                                        'FFTfreq-' + str(wandb.config.freq_limit_scale)])
             '''
             TPU init options
             '''
@@ -151,8 +150,8 @@ def main():
             BATCH_SIZE_PER_REPLICA=1
             GLOBAL_BATCH_SIZE = BATCH_SIZE_PER_REPLICA*NUM_REPLICAS
             
-            train_steps = 34021 // GLOBAL_BATCH_SIZE
-            val_steps = 2213 // GLOBAL_BATCH_SIZE
+            train_steps = 5#34021 // GLOBAL_BATCH_SIZE
+            val_steps = 3#2213 // GLOBAL_BATCH_SIZE
             
             total_steps = train_steps * wandb.config.num_epochs
             
@@ -187,21 +186,7 @@ def main():
                                          warmup_steps=wandb.config.warmup_frac*total_steps,
                                          decay_schedule_fn=scheduler)
 
-            scheduler_wd= tf.keras.optimizers.schedules.CosineDecay(
-                initial_learning_rate=wandb.config.weight_decay_frac,
-                decay_steps=total_steps, alpha=0.0)
-            scheduler_wd=optimizers.WarmUp(initial_learning_rate=wandb.config.weight_decay_frac,
-                                         warmup_steps=int(wandb.config.warmup_frac*total_steps),
-                                         decay_schedule_fn=scheduler)
-
-            optimizer = tfa.optimizers.AdamW(learning_rate=scheduler,
-                                             beta_1=wandb.config.beta1,
-                                             beta_2=wandb.config.beta2,
-                                             weight_decay=scheduler_wd)
-            optimizer=tfa.optimizers.Lookahead(optimizer,
-                                               sync_period=wandb.config.sync_period,
-                                               slow_step_size=wandb.config.slow_step_frac)
-
+            optimizer = tf.keras.optimizers.Adam(learning_rate=scheduler)
 
             metric_dict = {}
             
