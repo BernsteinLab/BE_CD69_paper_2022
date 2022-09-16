@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 python3 enformer_ft_train.py \
-            --tpu_name="node-15" \
-            --tpu_zone="us-central1-a" \
+            --tpu_name="pod" \
+            --tpu_zone="us-east1-d" \
             --wandb_project="enformer_fine_tuning" \
             --wandb_user="njaved" \
             --wandb_sweep_name="aformer_initial_run" \
