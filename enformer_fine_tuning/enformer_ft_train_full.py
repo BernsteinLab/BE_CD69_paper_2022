@@ -73,18 +73,6 @@ def main():
                 'epsilon': {
                     'values':[args.epsilon]
                 },
-                'rectify': {
-                    'values':[args.rectify]
-                },
-                'use_fft_prior': {
-                    'values':[x == 'True' for x in args.use_fft_prior.split(',')]
-                },
-                'fft_prior_scale': {
-                    'values':[float(x) for x in args.fft_prior_scale.split(',')]
-                },
-                'freq_limit_scale': {
-                    'values':[float(x) for x in args.freq_limit_scale.split(',')]
-                },
                 'beta1': {
                     'values':[float(x) for x in args.beta1.split(',')]
                 },
