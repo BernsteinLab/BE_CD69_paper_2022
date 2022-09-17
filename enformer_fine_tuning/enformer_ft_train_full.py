@@ -179,8 +179,6 @@ def main():
 
             metric_dict = {}
             
-            freq_limit = int(wandb.config.input_length*wandb.config.freq_limit_scale)
-
             train_step, val_step, metric_dict = training_utils.return_train_val_functions(enformer_model,
                                                                                  optimizers_in,
                                                                                  strategy,
