@@ -73,15 +73,12 @@ consolidate into single simpler function
 
 
 def return_train_val_functions(model,
-                               optimizer,
+                               optimizers_in,
                                strategy,
                                metric_dict,
                                train_steps, 
                                val_steps,
-                               global_batch_size,
-                               gradient_clip,
-                               freq_limit=5000,
-                               fourier_loss_scale=1.0):
+                               global_batch_size):
     """Returns distributed train and validation functions for
     a given list of organisms
     Args:
@@ -104,6 +101,7 @@ def return_train_val_functions(model,
     val_steps is the # steps to fully iterate over validation set
     """
 
+    optimizer1,optimizer2=optimizers_in
 
     metric_dict["hg_tr"] = tf.keras.metrics.Mean("hg_tr_loss",
                                                  dtype=tf.float32)
@@ -129,8 +127,9 @@ def return_train_val_functions(model,
                 loss = tf.reduce_sum(poisson_loss(target,
                                                   output)) * (1. / global_batch_size)
                 
-            gradients = tape.gradient(loss, model.trainable_variables)
-            optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+            gradients = tape.gradient(loss, model.trunk.trainable_variables + model.heads.trainable_variables)
+            optimizer1.apply_gradients(zip(gradients[:len(model.trunk.trainable_variables)], model.trunk.trainable_variables))
+            optimizer2.apply_gradients(zip(gradients[len(model.trunk.trainable_variables):], model.heads.trainable_variables))
             metric_dict["hg_tr"].update_state(loss)
 
         for _ in tf.range(train_steps): ## for loop within @tf.fuction for improved TPU performance
@@ -452,40 +451,19 @@ def parse_args(parser):
                         default=196608,
                         type=int,
                         help='input_length')
-    parser.add_argument('--lr_base',
-                        dest='lr_base',
+    parser.add_argument('--lr_base1',
+                        dest='lr_base1',
                         default="1.0e-03",
-                        help='lr_base')
-    parser.add_argument('--min_lr',
-                        dest='min_lr',
-                        default="1.0e-07",
-                        help= 'min_lr')
+                        help='lr_base1')
+    parser.add_argument('--lr_base2',
+                        dest='lr_base2',
+                        default="1.0e-03",
+                        help='lr_base2')
     parser.add_argument('--epsilon',
                         dest='epsilon',
                         default=1.0e-10,
                         type=float,
                         help= 'epsilon')
-    parser.add_argument('--rectify',
-                        dest='rectify',
-                        default=True,
-                        help= 'rectify')
-    parser.add_argument('--gradient_clip',
-                        dest='gradient_clip',
-                        type=str,
-                        default="0.2",
-                        help= 'gradient_clip')
-    parser.add_argument('--weight_decay_frac',
-                        dest='weight_decay_frac',
-                        type=str,
-                        help= 'weight_decay_frac')
-    parser.add_argument('--sync_period',
-                        type=int,
-                        dest='sync_period',
-                        help= 'sync_period')
-    parser.add_argument('--slow_step_frac',
-                        type=float,
-                        dest='slow_step_frac',
-                        help= 'slow_step_frac')
     parser.add_argument('--num_heads',
                         dest='num_heads',
                         type=int,
@@ -494,20 +472,6 @@ def parse_args(parser):
                         dest='savefreq',
                         type=int,
                         help= 'savefreq')
-    parser.add_argument('--use_fft_prior',
-                        dest='use_fft_prior',
-                        default="True",
-                        help= 'use_fft_prior')
-    parser.add_argument('--freq_limit_scale',
-                        dest='freq_limit_scale',
-                        type=str,
-                        default="0.07",
-                        help= 'freq_limit')
-    parser.add_argument('--fft_prior_scale',
-                        dest='fft_prior_scale',
-                        type=str,
-                        default="0.5",
-                        help= 'fft_prior_scale')
     parser.add_argument('--total_steps',
                         dest='total_steps',
                         type=int,

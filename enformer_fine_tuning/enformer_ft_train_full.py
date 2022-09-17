@@ -64,14 +64,11 @@ def main():
                 'goal': 'minimize'
             },
             'parameters': {
-                'lr_base': {
-                    'values':[float(x) for x in args.lr_base.split(',')]
+                'lr_base1': {
+                    'values':[float(x) for x in args.lr_base1.split(',')]
                 },
-                'min_lr': {
-                    'values':[float(x) for x in args.min_lr.split(',')]
-                },
-                'gradient_clip': {
-                    'values': [float(x) for x in args.gradient_clip.split(',')]
+                'lr_base2': {
+                    'values':[float(x) for x in args.lr_base2.split(',')]
                 },
                 'epsilon': {
                     'values':[args.epsilon]
@@ -109,7 +106,7 @@ def main():
         ## rest must be w/in strategy scope
         with strategy.scope():
             config_defaults = {
-                "lr_base": 0.01 ### will be overwritten
+                "lr_base1": 0.01 ### will be overwritten
             }
             
             ### log training parameters
@@ -121,21 +118,14 @@ def main():
             wandb.config.gcs_path=args.gcs_path
             wandb.config.input_length=args.input_length
             wandb.config.num_epochs=args.num_epochs
-            #wandb.config.train_steps=args.train_steps
-            #wandb.config.val_steps=args.val_steps
             wandb.config.warmup_frac=args.warmup_frac
-            #wandb.config.total_steps=args.total_steps
             wandb.config.patience=args.patience
             wandb.config.min_delta=args.min_delta
             wandb.config.model_save_dir=args.model_save_dir
             wandb.config.model_save_basename=args.model_save_basename
             
-            wandb.config.sync_period=args.sync_period
-            wandb.config.slow_step_frac=args.slow_step_frac
-            
-            wandb.run.name = '_'.join(['LR' + str(wandb.config.lr_base),
-                                        'FFTscale-' + str(wandb.config.fft_prior_scale),
-                                        'FFTfreq-' + str(wandb.config.freq_limit_scale),
+            wandb.run.name = '_'.join(['LR1' + str(wandb.config.lr_base1),
+                                       'LR2' + str(wandb.config.lr_base2),
                                         args.model_save_basename])
             '''
             TPU init options
@@ -180,29 +170,36 @@ def main():
             
     
 
-            scheduler= tf.keras.optimizers.schedules.CosineDecay(
-                initial_learning_rate=wandb.config.lr_base,
-                decay_steps=total_steps, alpha=(wandb.config.min_lr / wandb.config.lr_base))
-            scheduler=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base,
+            scheduler1= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.lr_base1,
+                decay_steps=total_steps, alpha=1.0)
+            scheduler1=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base1,
                                          warmup_steps=wandb.config.warmup_frac*total_steps,
-                                         decay_schedule_fn=scheduler)
+                                         decay_schedule_fn=scheduler1)
+            
+            scheduler2= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.lr_base2,
+                decay_steps=total_steps, alpha=1.0)
+            schedule2=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base2,
+                                         warmup_steps=wandb.config.warmup_frac*total_steps,
+                                         decay_schedule_fn=scheduler2)
 
-            optimizer = tf.keras.optimizers.Adam(learning_rate=scheduler)
+            optimizer1 = tf.keras.optimizers.Adam(learning_rate=scheduler1)
+            
+            optimizer2 = tf.keras.optimizers.Adam(learning_rate=scheduler2)
+            optimizers_in = optimizer1,optimizer2
 
             metric_dict = {}
             
             freq_limit = int(wandb.config.input_length*wandb.config.freq_limit_scale)
 
             train_step, val_step, metric_dict = training_utils.return_train_val_functions(enformer_model,
-                                                                                 optimizer,
+                                                                                 optimizers_in,
                                                                                  strategy,
                                                                                  metric_dict, 
                                                                                  train_steps,
                                                                                  val_steps,
-                                                                                 GLOBAL_BATCH_SIZE,
-                                                                                 wandb.config.gradient_clip,
-                                                                                 freq_limit=freq_limit,
-                                                                                 fourier_loss_scale=wandb.config.fft_prior_scale) 
+                                                                                 GLOBAL_BATCH_SIZE)
                 
             
             ### main training loop

@@ -166,7 +166,6 @@ class Enformer(snt.Module):
                is_training: bool) -> tf.Tensor:
         trunk_embedding = self.trunk(inputs, is_training=is_training)
         return self._new_head(trunk_embedding,is_training=is_training)
-
     
     @tf.function(input_signature=[
       tf.TensorSpec([None, SEQUENCE_LENGTH, 4], tf.float32)])
