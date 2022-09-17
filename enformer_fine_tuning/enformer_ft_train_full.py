@@ -135,7 +135,8 @@ def main():
             
             wandb.run.name = '_'.join(['LR' + str(wandb.config.lr_base),
                                         'FFTscale-' + str(wandb.config.fft_prior_scale),
-                                        'FFTfreq-' + str(wandb.config.freq_limit_scale)])
+                                        'FFTfreq-' + str(wandb.config.freq_limit_scale),
+                                        args.model_save_basename])
             '''
             TPU init options
             '''
