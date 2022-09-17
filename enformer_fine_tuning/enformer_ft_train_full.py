@@ -73,6 +73,12 @@ def main():
                 'epsilon': {
                     'values':[args.epsilon]
                 },
+                'wd_frac1': {
+                    'values': [float(x) for x in args.weight_decay_frac1.split(',')]
+                },
+                'wd_frac2': {
+                    'values': [float(x) for x in args.weight_decay_frac2.split(',')]
+                },
                 'beta1': {
                     'values':[float(x) for x in args.beta1.split(',')]
                 },
@@ -111,6 +117,9 @@ def main():
             wandb.config.min_delta=args.min_delta
             wandb.config.model_save_dir=args.model_save_dir
             wandb.config.model_save_basename=args.model_save_basename
+            
+            wandb.config.wd_frac1=args.weight_decay_frac1
+            wandb.config.wd_frac2=args.weight_decay_frac2
             
             wandb.run.name = '_'.join(['LR1' + str(wandb.config.lr_base1),
                                        'LR2' + str(wandb.config.lr_base2),
@@ -164,6 +173,12 @@ def main():
             scheduler1=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base1,
                                          warmup_steps=wandb.config.warmup_frac*total_steps,
                                          decay_schedule_fn=scheduler1)
+            scheduler1wd= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.wd_frac1,
+                decay_steps=total_steps, alpha=1.0)
+            scheduler1wd=optimizers.WarmUp(initial_learning_rate=wandb.config.wd_frac1,
+                                         warmup_steps=wandb.config.warmup_frac*total_steps,
+                                         decay_schedule_fn=scheduler1wd)
             
             scheduler2= tf.keras.optimizers.schedules.CosineDecay(
                 initial_learning_rate=wandb.config.lr_base2,
@@ -171,10 +186,18 @@ def main():
             schedule2=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base2,
                                          warmup_steps=wandb.config.warmup_frac*total_steps,
                                          decay_schedule_fn=scheduler2)
+            scheduler2wd= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.wd_frac2,
+                decay_steps=total_steps, alpha=1.0)
+            scheduler2wd=optimizers.WarmUp(initial_learning_rate=wandb.config.wd_frac2,
+                                         warmup_steps=wandb.config.warmup_frac*total_steps,
+                                         decay_schedule_fn=scheduler1wd)
 
-            optimizer1 = tf.keras.optimizers.Adam(learning_rate=scheduler1)
+            optimizer1 = tfa.optimizers.AdamW(learning_rate=scheduler1,
+                                             weight_decay=scheduler1wd)
             
-            optimizer2 = tf.keras.optimizers.Adam(learning_rate=scheduler2)
+            optimizer2 = tfa.optimizers.AdamW(learning_rate=scheduler2,
+                                             weight_decay=scheduler2wd)
             optimizers_in = optimizer1,optimizer2
 
             metric_dict = {}

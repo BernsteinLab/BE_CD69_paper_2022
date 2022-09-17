@@ -459,6 +459,14 @@ def parse_args(parser):
                         dest='lr_base2',
                         default="1.0e-03",
                         help='lr_base2')
+    parser.add_argument('--weight_decay_frac1',
+                        dest='weight_decay_frac1',
+                        default="1.0e-03",
+                        help='weight_decay_frac1')
+    parser.add_argument('--weight_decay_frac2',
+                        dest='weight_decay_frac2',
+                        default="1.0e-03",
+                        help='weight_decay_frac2')
     parser.add_argument('--epsilon',
                         dest='epsilon',
                         default=1.0e-10,
