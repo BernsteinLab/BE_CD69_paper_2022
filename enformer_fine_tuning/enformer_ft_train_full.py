@@ -132,6 +132,9 @@ def main():
             
             wandb.run.name = '_'.join(['LR1' + str(wandb.config.lr_base1),
                                        'LR2' + str(wandb.config.lr_base2),
+                                       'WD1' + str(wandb.config.wd_frac1),
+                                       'WD2' + str(wandb.config.wd_frac2),
+                                       'WD2' + str(wandb.config.wd_frac2),
                                         args.model_save_basename])
             '''
             TPU init options
@@ -290,7 +293,7 @@ def main():
                                                         min_delta=wandb.config.min_delta,
                                                         model=enformer_model,
                                                         save_directory=wandb.config.model_save_dir,
-                                                        saved_model_basename=wandb.config.model_save_basename,
+                                                        saved_model_basename=wandb.config.model_save_basename + "_" + wandb.run.name,
                                                         checkpoint=checkpoint)
                 #plt.close('all')
                 print('patience counter at: ' + str(patience_counter))
