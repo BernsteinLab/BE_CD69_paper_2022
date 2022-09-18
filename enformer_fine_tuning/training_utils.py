@@ -399,20 +399,19 @@ def early_stopping(current_val_loss,
         if patience_counter >= patience:
             stop_criteria=True
     else:
-
         best_epoch = np.argmin(logged_val_losses)
         ## save current model
-        if (current_epoch % save_freq) == 0:
-            print('Saving model...')
-            model_name = save_directory + "/" + \
-                            saved_model_basename + "/iteration_" + \
-                                str(current_epoch) + "/checkpoint"
-            #model.save_weights(model_name)
-            checkpoint.save(model_name)
-            ### write to logging file in saved model dir to model parameters and current epoch info
-            
+            ### write to logging file in saved model dir to model parameters and current epoch info    
         patience_counter = 0
         stop_criteria = False
+        
+    if (((current_epoch % save_freq) == 0) and (not stop_criteria)):
+        print('Saving model...')
+        model_name = save_directory + "/" + \
+                        saved_model_basename + "/iteration_" + \
+                            str(current_epoch) + "/checkpoint"
+        #model.save_weights(model_name)
+        checkpoint.save(model_name)
     
     return stop_criteria, patience_counter, best_epoch
         
