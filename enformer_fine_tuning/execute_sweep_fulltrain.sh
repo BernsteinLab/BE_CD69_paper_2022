@@ -19,6 +19,9 @@ python3 enformer_ft_train_full.py \
             --lr_base2="5.0e-02,5.0e-03" \
             --weight_decay_frac1="5.0e-04" \
             --weight_decay_frac2="5.0e-02" \
+            --dropout_rate="0.40,0.50" \
+            --attention_dropout_rate="0.05,0.10" \
+            --positional_dropout_rate="0.01,0.05" \
             --epsilon=1.0e-10 \
             --num_parallel=8 \
             --savefreq=10 
