@@ -84,6 +84,15 @@ def main():
                 },
                 'beta2': {
                     'values':[float(x) for x in args.beta2.split(',')]
+                },
+                'dropout_rate': {
+                    'values': [float(x) for x in args.dropout_rate.split(',')]
+                },
+                'attention_dropout_rate': {
+                    'values':[float(x) for x in args.attention_dropout_rate.split(',')]
+                },
+                'positional_dropout_rate': {
+                    'values':[float(x) for x in args.positional_dropout_rate.split(',')]
                 }
                 }
 
@@ -156,7 +165,9 @@ def main():
 
                 
             
-            enformer_model = enformer.Enformer()
+            enformer_model = enformer.Enformer(dropout_rate=wandb.config.dropout_rate,
+                                               attention_dropout_rate=wandb.config.attention_dropout_rate,
+                                               positional_dropout_rate=wandb.config.positional_dropout_rate)
             SEQ_LENGTH = 196608
 
             options = tf.train.CheckpointOptions(experimental_io_device="/job:localhost")

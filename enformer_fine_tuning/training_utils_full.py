@@ -479,6 +479,15 @@ def parse_args(parser):
                         dest='savefreq',
                         type=int,
                         help= 'savefreq')
+    parser.add_argument('--dropout_rate',
+                        dest='dropout_rate',
+                        help= 'dropout_rate')
+    parser.add_argument('--attention_dropout_rate',
+                        dest='attention_dropout_rate',
+                        help= 'attention_dropout_rate')
+    parser.add_argument('--positional_dropout_rate',
+                        dest='positional_dropout_rate',
+                        help= 'positional_dropout_rate')
     parser.add_argument('--total_steps',
                         dest='total_steps',
                         type=int,
