@@ -15,10 +15,10 @@ python3 enformer_ft_train_full.py \
             --num_heads=4 \
             --model_save_dir="gs://picard-testing-176520/BE_paper_pretraining/models" \
             --model_save_basename="enformer_fine_tuning" \
-            --lr_base1="5.0e-06" \
-            --lr_base2="1.0e-03" \
-            --weight_decay_frac1="5.0e-04" \
-            --weight_decay_frac2="5.0e-02" \
+            --lr_base1="5.0e-05" \
+            --lr_base2="5.0e-03" \
+            --weight_decay_frac1="5.0e-05" \
+            --weight_decay_frac2="5.0e-03" \
             --dropout_rate="0.40" \
             --attention_dropout_rate="0.05" \
             --positional_dropout_rate="0.01" \
