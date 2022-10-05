@@ -30,7 +30,7 @@ Remainder of code is grouped by figure or analysis type.
 
 `enformer_fine_tuning` contains: 
  - training scripts and utilities for fine-tuning an Enformer model on stim vs. resting ATAC-seq data
- - checkpoint contains the weights for the best fine-tuned model at iteration 24
+ - note that the checkpoint containing the weights for the best fine-tuned model at iteration 24 is available at gs://picard-testing-176520/BE_paper_pretraining/models/enformer_fine_tuning_LR15e-05_LR20.005_WD15e-05_WD20.05_WD20.05_enformer_fine_tuning/iteration_24
 
 `references/` contains: 
  - gene annotation files
