@@ -105,7 +105,7 @@ def main():
 
         ## tpu initialization
         strategy = training_utils.tf_tpu_initialize(args.tpu_name)
-
+        g = tf.random.Generator.from_non_deterministic_state()
         ## rest must be w/in strategy scope
         with strategy.scope():
             config_defaults = {
@@ -141,7 +141,7 @@ def main():
             '''
             options = tf.data.Options()
             options.experimental_distribute.auto_shard_policy=\
-                tf.data.experimental.AutoShardPolicy.FILE
+                tf.data.experimental.AutoShardPolicy.OFF
             options.deterministic=False
             options.experimental_threading.max_intra_op_parallelism=1
             tf.config.optimizer.set_jit(True)
@@ -164,7 +164,7 @@ def main():
                                  args.num_parallel,
                                  wandb.config.num_epochs,
                                  strategy,
-                                 options)
+                                 options, g)
 
                 
             
@@ -172,14 +172,6 @@ def main():
                                                attention_dropout_rate=wandb.config.attention_dropout_rate,
                                                positional_dropout_rate=wandb.config.positional_dropout_rate)
             SEQ_LENGTH = 196608
-
-            options = tf.train.CheckpointOptions(experimental_io_device="/job:localhost")
-            checkpoint = tf.train.Checkpoint(module=enformer_model)#,options=options)
-            tf.saved_model.LoadOptions(experimental_io_device='/job:localhost')
-            latest = tf.train.latest_checkpoint("sonnet_weights")
-            checkpoint.restore(latest,options=options).assert_existing_objects_matched()
-            
-    
 
             scheduler1= tf.keras.optimizers.schedules.CosineDecay(
                 initial_learning_rate=wandb.config.lr_base1,
@@ -240,6 +232,12 @@ def main():
                 if epoch_i == 1:
                     # run once to build the model w/o updating anything
                     val_step(val_data)
+                    options = tf.train.CheckpointOptions(experimental_io_device="/job:localhost")
+                    checkpoint = tf.train.Checkpoint(module=enformer_model)#,options=options)
+                    tf.saved_model.LoadOptions(experimental_io_device='/job:localhost')
+                    latest = tf.train.latest_checkpoint("sonnet_weights")
+                    checkpoint.restore(latest,options=options)
+                print('passed checkpoint load')
 
                 train_step(tr_data)
                     

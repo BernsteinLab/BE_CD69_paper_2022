@@ -9,12 +9,12 @@ python3 enformer_ft_train_full.py \
             --gcs_project="picard-testing-176520" \
             --gcs_path="gs://picard-testing-176520/BE_paper_pretraining/tfrecords" \
             --num_epochs=120 \
-            --warmup_frac=0.10 \
+            --warmup_frac=0.40 \
             --patience=30\
             --min_delta=0.001 \
             --num_heads=4 \
             --model_save_dir="gs://picard-testing-176520/BE_paper_pretraining/models" \
-            --model_save_basename="enformer_fine_tuning" \
+            --model_save_basename="enformer_fine_tuning_221227" \
             --lr_base1="5.0e-05" \
             --lr_base2="5.0e-03" \
             --weight_decay_frac1="5.0e-05,5.0e-04" \
