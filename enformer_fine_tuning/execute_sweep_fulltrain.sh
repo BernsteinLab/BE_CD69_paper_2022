@@ -9,7 +9,7 @@ python3 enformer_ft_train_full.py \
             --gcs_project="picard-testing-176520" \
             --gcs_path="gs://picard-testing-176520/be_paper_finetuning/tfrecords" \
             --num_epochs=120 \
-            --warmup_frac=0.02 \
+            --warmup_frac=0.025 \
             --patience=30\
             --min_delta=0.001 \
             --num_heads=3 \

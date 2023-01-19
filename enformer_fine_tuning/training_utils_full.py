@@ -314,7 +314,7 @@ def return_distributed_iterators(gcs_path,
         
             
         val_data = return_dataset(gcs_path,
-                                 "val",
+                                 "valid",
                                  global_batch_size,
                                  input_length,
                                  max_shift,
