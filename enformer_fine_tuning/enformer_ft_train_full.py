@@ -105,7 +105,7 @@ def main():
 
         ## tpu initialization
         strategy = training_utils.tf_tpu_initialize(args.tpu_name)
-        g = tf.random.Generator.from_non_deterministic_state()
+        g = tf.random.Generator.from_seed(datetime.now().timestamp())
         ## rest must be w/in strategy scope
         with strategy.scope():
             config_defaults = {
@@ -259,10 +259,9 @@ def main():
                 print('pearsonsR: ')
                 pearsonsR=metric_dict['pearsonsR'].result()['PearsonR'].numpy()
                 print(pearsonsR)
-                wandb.log({'rho(CD4_stim)': pearsonsR[0],
-                           'rho(CD4_rest)': pearsonsR[1],
-                           'rho(Jurkat_stim)': pearsonsR[2],
-                           'rho(Jurkat_rest)': pearsonsR[3]},
+                wandb.log({'rho(Jurkat_stim)': pearsonsR[0],
+                           'rho(Jurkat_rest)': pearsonsR[1],
+                           'rho(Jurkat_diff)': pearsonsR[2]},
                           step=epoch_i)
                 
                 val_pearsons.append(np.nanmedian(pearsonsR))

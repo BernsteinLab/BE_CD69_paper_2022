@@ -7,14 +7,14 @@ python3 enformer_ft_train_full.py \
             --wandb_user="njaved" \
             --wandb_sweep_name="enformer_fine_tuning" \
             --gcs_project="picard-testing-176520" \
-            --gcs_path="gs://picard-testing-176520/BE_paper_pretraining/tfrecords" \
+            --gcs_path="gs://picard-testing-176520/be_paper_finetuning/tfrecords" \
             --num_epochs=120 \
-            --warmup_frac=0.40 \
+            --warmup_frac=0.02 \
             --patience=30\
             --min_delta=0.001 \
-            --num_heads=4 \
-            --model_save_dir="gs://picard-testing-176520/BE_paper_pretraining/models" \
-            --model_save_basename="enformer_fine_tuning_221227" \
+            --num_heads=3 \
+            --model_save_dir="gs://picard-testing-176520/be_paper_finetuning//models" \
+            --model_save_basename="enformer_fine_tuning_230118" \
             --lr_base1="5.0e-05" \
             --lr_base2="5.0e-03" \
             --weight_decay_frac1="5.0e-05,5.0e-04" \
@@ -23,5 +23,5 @@ python3 enformer_ft_train_full.py \
             --attention_dropout_rate="0.05" \
             --positional_dropout_rate="0.01" \
             --epsilon=1.0e-10 \
-            --num_parallel=8 \
-            --savefreq=8 
+            --num_parallel=4 \
+            --savefreq=4

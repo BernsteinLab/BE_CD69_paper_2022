@@ -152,8 +152,7 @@ class Enformer(snt.Module):
 
     #with tf.name_scope('new_heads'):
         self._new_head = Sequential(
-              lambda: [snt.Linear(4), 
-               tf.nn.softplus],
+              lambda: [snt.Linear(3)],
               name='new_head')
     # pylint: enable=g-complex-comprehension,g-long-lambda,cell-var-from-loop
 
@@ -166,8 +165,8 @@ class Enformer(snt.Module):
         return self._new_head
 
     def __call__(self, inputs: tf.Tensor,
-               is_training: bool) -> tf.Tensor:
-        trunk_embedding = self.trunk(inputs, is_training=is_training)
+                 is_training: bool) -> tf.Tensor:
+        trunk_embedding = self.trunk(inputs,is_training=is_training)
         return self._new_head(trunk_embedding,is_training=is_training)
     
     @tf.function(input_signature=[
