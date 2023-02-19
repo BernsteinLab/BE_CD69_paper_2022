@@ -197,7 +197,7 @@ class MultiheadAttention(snt.Module):
           self._initializer([1, self._num_heads, 1, self._key_size],
                             dtype=tf.float32),
           name='r_r_bias')
-  #@tf.custom_gradient
+
   def _multihead_output(self, linear, inputs):
     """Applies a standard linear to inputs and returns multihead output."""
 
@@ -277,7 +277,6 @@ class MultiheadAttention(snt.Module):
 
     return output
 
-@tf.custom_gradient
 def relative_shift(x):
   """Shift the relative logits like in TransformerXL."""
   # We prepend zeros on the final timescale dimension.
@@ -288,10 +287,8 @@ def relative_shift(x):
   x = tf.slice(x, [0, 0, 1, 0], [-1, -1, -1, -1])
   x = tf.reshape(x, [-1, num_heads, t1, t2 - 1])
   x = tf.slice(x, [0, 0, 0, 0], [-1, -1, -1, (t2 + 1) // 2])
-  def grad(upstream):
-    return None
 
-  return x,grad
+  return x
 
 
 # Available feature functions:

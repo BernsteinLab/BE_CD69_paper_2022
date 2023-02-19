@@ -28,7 +28,7 @@ from tensorflow import strings as tfs
 from tensorflow.keras import mixed_precision
 
 ## custom modules
-import enformer as enformer
+import enformer
 import metrics as metrics
 import training_utils
 
@@ -64,35 +64,35 @@ def main():
                 'goal': 'minimize'
             },
             'parameters': {
-                'lr_base': {
-                    'values':[float(x) for x in args.lr_base.split(',')]
+                'lr_base1': {
+                    'values':[float(x) for x in args.lr_base1.split(',')]
                 },
-                'min_lr': {
-                    'values':[float(x) for x in args.min_lr.split(',')]
-                },
-                'gradient_clip': {
-                    'values': [float(x) for x in args.gradient_clip.split(',')]
+                'lr_base2': {
+                    'values':[float(x) for x in args.lr_base2.split(',')]
                 },
                 'epsilon': {
                     'values':[args.epsilon]
                 },
-                'rectify': {
-                    'values':[args.rectify]
+                'wd_frac1': {
+                    'values': [float(x) for x in args.weight_decay_frac1.split(',')]
                 },
-                'use_fft_prior': {
-                    'values':[x == 'True' for x in args.use_fft_prior.split(',')]
-                },
-                'fft_prior_scale': {
-                    'values':[float(x) for x in args.fft_prior_scale.split(',')]
-                },
-                'freq_limit_scale': {
-                    'values':[float(x) for x in args.freq_limit_scale.split(',')]
+                'wd_frac2': {
+                    'values': [float(x) for x in args.weight_decay_frac2.split(',')]
                 },
                 'beta1': {
                     'values':[float(x) for x in args.beta1.split(',')]
                 },
                 'beta2': {
                     'values':[float(x) for x in args.beta2.split(',')]
+                },
+                'dropout_rate': {
+                    'values': [float(x) for x in args.dropout_rate.split(',')]
+                },
+                'attention_dropout_rate': {
+                    'values':[float(x) for x in args.attention_dropout_rate.split(',')]
+                },
+                'positional_dropout_rate': {
+                    'values':[float(x) for x in args.positional_dropout_rate.split(',')]
                 }
                 }
 
@@ -105,11 +105,11 @@ def main():
 
         ## tpu initialization
         strategy = training_utils.tf_tpu_initialize(args.tpu_name)
-
+        g = tf.random.Generator.from_seed(datetime.now().timestamp())
         ## rest must be w/in strategy scope
         with strategy.scope():
             config_defaults = {
-                "lr_base": 0.01 ### will be overwritten
+                "lr_base1": 0.01 ### will be overwritten
             }
             
             ### log training parameters
@@ -121,28 +121,27 @@ def main():
             wandb.config.gcs_path=args.gcs_path
             wandb.config.input_length=args.input_length
             wandb.config.num_epochs=args.num_epochs
-            #wandb.config.train_steps=args.train_steps
-            #wandb.config.val_steps=args.val_steps
             wandb.config.warmup_frac=args.warmup_frac
-            #wandb.config.total_steps=args.total_steps
             wandb.config.patience=args.patience
             wandb.config.min_delta=args.min_delta
             wandb.config.model_save_dir=args.model_save_dir
             wandb.config.model_save_basename=args.model_save_basename
             
-            wandb.config.sync_period=args.sync_period
-            wandb.config.slow_step_frac=args.slow_step_frac
+            wandb.config.wd_frac1=args.weight_decay_frac1
+            wandb.config.wd_frac2=args.weight_decay_frac2
             
-            wandb.run.name = '_'.join(['LR' + str(wandb.config.lr_base),
-                                        'FFTscale-' + str(wandb.config.fft_prior_scale),
-                                        'FFTfreq-' + str(wandb.config.freq_limit_scale),
+            wandb.run.name = '_'.join(['LR1' + str(wandb.config.lr_base1),
+                                       'LR2' + str(wandb.config.lr_base2),
+                                       'WD1' + str(wandb.config.wd_frac1),
+                                       'WD2' + str(wandb.config.wd_frac2),
+                                       'WD2' + str(wandb.config.wd_frac2),
                                         args.model_save_basename])
             '''
             TPU init options
             '''
             options = tf.data.Options()
             options.experimental_distribute.auto_shard_policy=\
-                tf.data.experimental.AutoShardPolicy.FILE
+                tf.data.experimental.AutoShardPolicy.OFF
             options.deterministic=False
             options.experimental_threading.max_intra_op_parallelism=1
             tf.config.optimizer.set_jit(True)
@@ -156,7 +155,7 @@ def main():
             
             total_steps = train_steps * wandb.config.num_epochs
             
-            tr_data,val_data = training_utils.return_distributed_iterators("gs://picard-testing-176520/BE_paper_pretraining/tfrecords",
+            tr_data,val_data = training_utils.return_distributed_iterators(wandb.config.gcs_path,
                                  GLOBAL_BATCH_SIZE,
                                  196608,
                                  10,
@@ -165,44 +164,57 @@ def main():
                                  args.num_parallel,
                                  wandb.config.num_epochs,
                                  strategy,
-                                 options)
+                                 options, g)
 
                 
             
-            enformer_model = enformer.Enformer()
+            enformer_model = enformer.Enformer(dropout_rate=wandb.config.dropout_rate,
+                                               attention_dropout_rate=wandb.config.attention_dropout_rate,
+                                               positional_dropout_rate=wandb.config.positional_dropout_rate)
             SEQ_LENGTH = 196608
 
-            options = tf.train.CheckpointOptions(experimental_io_device="/job:localhost")
-            checkpoint = tf.train.Checkpoint(module=enformer_model)#,options=options)
-            tf.saved_model.LoadOptions(experimental_io_device='/job:localhost')
-            latest = tf.train.latest_checkpoint("sonnet_weights")
-            checkpoint.restore(latest,options=options).assert_existing_objects_matched()
-            
-    
-
-            scheduler= tf.keras.optimizers.schedules.CosineDecay(
-                initial_learning_rate=wandb.config.lr_base,
-                decay_steps=total_steps, alpha=(wandb.config.min_lr / wandb.config.lr_base))
-            scheduler=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base,
+            scheduler1= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.lr_base1,
+                decay_steps=total_steps, alpha=1.0)
+            scheduler1=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base1,
                                          warmup_steps=wandb.config.warmup_frac*total_steps,
-                                         decay_schedule_fn=scheduler)
+                                         decay_schedule_fn=scheduler1)
+            scheduler1wd= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.wd_frac1,
+                decay_steps=total_steps, alpha=1.0)
+            scheduler1wd=optimizers.WarmUp(initial_learning_rate=wandb.config.wd_frac1,
+                                         warmup_steps=wandb.config.warmup_frac*total_steps,
+                                         decay_schedule_fn=scheduler1wd)
+            
+            scheduler2= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.lr_base2,
+                decay_steps=total_steps, alpha=1.0)
+            schedule2=optimizers.WarmUp(initial_learning_rate=wandb.config.lr_base2,
+                                         warmup_steps=wandb.config.warmup_frac*total_steps,
+                                         decay_schedule_fn=scheduler2)
+            scheduler2wd= tf.keras.optimizers.schedules.CosineDecay(
+                initial_learning_rate=wandb.config.wd_frac2,
+                decay_steps=total_steps, alpha=1.0)
+            scheduler2wd=optimizers.WarmUp(initial_learning_rate=wandb.config.wd_frac2,
+                                         warmup_steps=wandb.config.warmup_frac*total_steps,
+                                         decay_schedule_fn=scheduler1wd)
 
-            optimizer = tf.keras.optimizers.Adam(learning_rate=scheduler)
+            optimizer1 = tfa.optimizers.AdamW(learning_rate=scheduler1,
+                                             weight_decay=scheduler1wd)
+            
+            optimizer2 = tfa.optimizers.AdamW(learning_rate=scheduler2,
+                                             weight_decay=scheduler2wd)
+            optimizers_in = optimizer1,optimizer2
 
             metric_dict = {}
             
-            freq_limit = int(wandb.config.input_length*wandb.config.freq_limit_scale)
-
             train_step, val_step, metric_dict = training_utils.return_train_val_functions(enformer_model,
-                                                                                 optimizer,
+                                                                                 optimizers_in,
                                                                                  strategy,
                                                                                  metric_dict, 
                                                                                  train_steps,
                                                                                  val_steps,
-                                                                                 GLOBAL_BATCH_SIZE,
-                                                                                 wandb.config.gradient_clip,
-                                                                                 freq_limit=freq_limit,
-                                                                                 fourier_loss_scale=wandb.config.fft_prior_scale) 
+                                                                                 GLOBAL_BATCH_SIZE)
                 
             
             ### main training loop
@@ -220,6 +232,12 @@ def main():
                 if epoch_i == 1:
                     # run once to build the model w/o updating anything
                     val_step(val_data)
+                    options = tf.train.CheckpointOptions(experimental_io_device="/job:localhost")
+                    checkpoint = tf.train.Checkpoint(module=enformer_model)#,options=options)
+                    tf.saved_model.LoadOptions(experimental_io_device='/job:localhost')
+                    latest = tf.train.latest_checkpoint("sonnet_weights")
+                    checkpoint.restore(latest,options=options)
+                print('passed checkpoint load')
 
                 train_step(tr_data)
                     
@@ -241,10 +259,9 @@ def main():
                 print('pearsonsR: ')
                 pearsonsR=metric_dict['pearsonsR'].result()['PearsonR'].numpy()
                 print(pearsonsR)
-                wandb.log({'rho(CD4_stim)': pearsonsR[0],
-                           'rho(CD4_rest)': pearsonsR[1],
-                           'rho(Jurkat_stim)': pearsonsR[2],
-                           'rho(Jurkat_rest)': pearsonsR[3]},
+                wandb.log({'rho(Jurkat_stim)': pearsonsR[0],
+                           'rho(Jurkat_rest)': pearsonsR[1],
+                           'rho(Jurkat_diff)': pearsonsR[2]},
                           step=epoch_i)
                 
                 val_pearsons.append(np.nanmedian(pearsonsR))
@@ -273,7 +290,7 @@ def main():
                                                         min_delta=wandb.config.min_delta,
                                                         model=enformer_model,
                                                         save_directory=wandb.config.model_save_dir,
-                                                        saved_model_basename=wandb.config.model_save_basename,
+                                                        saved_model_basename=wandb.config.model_save_basename + "_" + wandb.run.name,
                                                         checkpoint=checkpoint)
                 #plt.close('all')
                 print('patience counter at: ' + str(patience_counter))

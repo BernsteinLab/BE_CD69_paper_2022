@@ -23,7 +23,7 @@ import tensorflow as tf
 import sonnet as snt
 import tensorflow.experimental.numpy as tnp
 import tensorflow_addons as tfa
-from tensorflow import strings as tfsf
+from tensorflow import strings as tfs
 from tensorflow.keras import mixed_precision
 
 import pandas as pd
@@ -73,15 +73,12 @@ consolidate into single simpler function
 
 
 def return_train_val_functions(model,
-                               optimizer,
+                               optimizers_in,
                                strategy,
                                metric_dict,
                                train_steps, 
                                val_steps,
-                               global_batch_size,
-                               gradient_clip,
-                               freq_limit=5000,
-                               fourier_loss_scale=1.0):
+                               global_batch_size):
     """Returns distributed train and validation functions for
     a given list of organisms
     Args:
@@ -104,6 +101,7 @@ def return_train_val_functions(model,
     val_steps is the # steps to fully iterate over validation set
     """
 
+    optimizer1,optimizer2=optimizers_in
 
     metric_dict["hg_tr"] = tf.keras.metrics.Mean("hg_tr_loss",
                                                  dtype=tf.float32)
@@ -122,27 +120,16 @@ def return_train_val_functions(model,
                            dtype = tf.float32)
             sequence=tf.cast(inputs['sequence'],
                              dtype=tf.float32)
-            with tf.GradientTape(watch_accessed_variables=False) as tape:
-                with tf.GradientTape() as input_grad_tape:
-                    input_grad_tape.watch(sequence)
-                    #all_vars = model.trainable_variables
-                    vars_subset = model.heads.trainable_variables + \
-                                    model.trunk.submodules[4].trainable_variables #+ \
-                                        #model.trunk.submodules[0].trainable_variables
-                    for var in vars_subset:
-                        tape.watch(var)
-                    output = model(sequence, is_training=True)
-                input_grads = input_grad_tape.gradient(output, 
-                                                       sequence)
-                loss = tf.reduce_sum(poisson_loss(target,
-                                                  output)) * (1. / global_batch_size)
-                input_grads = input_grads * sequence
+            with tf.GradientTape() as tape:
+
+                output = model(sequence, is_training=True)
+
+                loss = tf.reduce_mean(poisson_loss(target,
+                                              output)) * (1. / global_batch_size)
                 
-                fourier_loss = fourier_att_prior_loss(input_grads) * fourier_loss_scale
-                loss = loss + fourier_loss
-                
-            gradients = tape.gradient(loss, vars_subset)
-            optimizer.apply_gradients(zip(gradients, vars_subset))
+            gradients = tape.gradient(loss, model.trunk.trainable_variables + model.heads.trainable_variables)
+            optimizer1.apply_gradients(zip(gradients[:len(model.trunk.trainable_variables)], model.trunk.trainable_variables))
+            optimizer2.apply_gradients(zip(gradients[len(model.trunk.trainable_variables):], model.heads.trainable_variables))
             metric_dict["hg_tr"].update_state(loss)
 
         for _ in tf.range(train_steps): ## for loop within @tf.fuction for improved TPU performance
@@ -157,8 +144,8 @@ def return_train_val_functions(model,
             sequence=tf.cast(inputs['sequence'],
                              dtype=tf.float32)
             output = model(sequence, is_training=False)
-            loss = tf.reduce_sum(poisson(target,
-                                         output)) * (1. / global_batch_size)
+            loss = tf.reduce_mean(poisson_loss(target,
+                                          output)) * (1. / global_batch_size)
             metric_dict["hg_val"].update_state(loss)
             metric_dict['pearsonsR'].update_state(target, output)
             metric_dict['R2'].update_state(target, output)
@@ -169,23 +156,33 @@ def return_train_val_functions(model,
     return dist_train_step_transfer, dist_val_step, metric_dict
 
 
-def deserialize_tr(serialized_example,input_length,max_shift, out_length,num_targets):
+def deserialize_tr(serialized_example,input_length,max_shift, out_length,num_targets, g):
     """Deserialize bytes stored in TFRecordFile."""
     feature_map = {
       'sequence': tf.io.FixedLenFeature([], tf.string),
       'target': tf.io.FixedLenFeature([], tf.string),
     }
     
-    data = tf.io.parse_example(serialized_example, feature_map)
-
-    shift = random.randrange(0,max_shift)
-    input_seq_length = input_length + max_shift
-    interval_end = input_length + shift
-    
-    ### rev_comp
-    rev_comp = random.randrange(0,2)
-
     example = tf.io.parse_example(serialized_example, feature_map)
+    
+    
+    rev_comp = tf.math.round(g.uniform([], 0, 1))
+
+    shift = g.uniform(shape=(),
+                      minval=0,
+                      maxval=max_shift,
+                      dtype=tf.int32)
+
+    for k in range(max_shift):
+        if k == shift:
+            interval_end = input_length + k
+            seq_shift = k
+        else:
+            seq_shift=0
+    
+    input_seq_length = input_length + max_shift
+    
+
     sequence = tf.io.decode_raw(example['sequence'], tf.bool)
     sequence = tf.reshape(sequence, (input_length + max_shift, 4))
     sequence = tf.cast(sequence, tf.float32)
@@ -197,6 +194,7 @@ def deserialize_tr(serialized_example,input_length,max_shift, out_length,num_tar
     target = tf.slice(target,
                       [320,0],
                       [896,-1])
+    target = tf.clip_by_value(target, 0.0, target.dtype.max)
     
     if rev_comp == 1:
         sequence = tf.gather(sequence, [3, 2, 1, 0], axis=-1)
@@ -217,15 +215,12 @@ def deserialize_val(serialized_example,input_length,max_shift, out_length,num_ta
       'target': tf.io.FixedLenFeature([], tf.string),
     }
     
-    data = tf.io.parse_example(serialized_example, feature_map)
+    example = tf.io.parse_example(serialized_example, feature_map)
 
     shift = 5
     input_seq_length = input_length + max_shift
     interval_end = input_length + shift
     
-    ### rev_comp
-    rev_comp = random.randrange(0,2)
-
     example = tf.io.parse_example(serialized_example, feature_map)
     sequence = tf.io.decode_raw(example['sequence'], tf.bool)
     sequence = tf.reshape(sequence, (input_length + max_shift, 4))
@@ -238,13 +233,8 @@ def deserialize_val(serialized_example,input_length,max_shift, out_length,num_ta
     target = tf.slice(target,
                       [320,0],
                       [896,-1])
+    target = tf.clip_by_value(target, 0.0, target.dtype.max)
     
-    if rev_comp == 1:
-        sequence = tf.gather(sequence, [3, 2, 1, 0], axis=-1)
-        sequence = tf.reverse(sequence, axis=[0])
-        target = tf.reverse(target,axis=[0])
-    
-
     
     return {'sequence': tf.ensure_shape(sequence,
                                         [input_length,4]),
@@ -260,7 +250,7 @@ def return_dataset(gcs_path,
                    num_targets,
                    options,
                    num_parallel,
-                   num_epoch):
+                   num_epoch, g):
     """
     return a tf dataset object for given gcs path
     """
@@ -280,7 +270,7 @@ def return_dataset(gcs_path,
                                                          input_length,
                                                          max_shift,
                                                          out_length,
-                                                         num_targets),
+                                                         num_targets, g),
                               deterministic=False,
                               num_parallel_calls=num_parallel)
         
@@ -306,7 +296,7 @@ def return_distributed_iterators(gcs_path,
                                  num_parallel_calls,
                                  num_epoch,
                                  strategy,
-                                 options):
+                                 options, g):
     """ 
     returns train + val dictionaries of distributed iterators
     for given heads_dictionary
@@ -321,12 +311,12 @@ def return_distributed_iterators(gcs_path,
                                  num_targets,
                                  options,
                                  num_parallel_calls,
-                                 num_epoch)
+                                 num_epoch, g)
         
         
             
         val_data = return_dataset(gcs_path,
-                                 "val",
+                                 "valid",
                                  global_batch_size,
                                  input_length,
                                  max_shift,
@@ -334,7 +324,7 @@ def return_distributed_iterators(gcs_path,
                                  num_targets,
                                  options,
                                  num_parallel_calls,
-                                 num_epoch)
+                                 num_epoch, g)
             
             
         train_dist = strategy.experimental_distribute_dataset(tr_data)
@@ -463,40 +453,27 @@ def parse_args(parser):
                         default=196608,
                         type=int,
                         help='input_length')
-    parser.add_argument('--lr_base',
-                        dest='lr_base',
+    parser.add_argument('--lr_base1',
+                        dest='lr_base1',
                         default="1.0e-03",
-                        help='lr_base')
-    parser.add_argument('--min_lr',
-                        dest='min_lr',
-                        default="1.0e-07",
-                        help= 'min_lr')
+                        help='lr_base1')
+    parser.add_argument('--lr_base2',
+                        dest='lr_base2',
+                        default="1.0e-03",
+                        help='lr_base2')
+    parser.add_argument('--weight_decay_frac1',
+                        dest='weight_decay_frac1',
+                        default="1.0e-03",
+                        help='weight_decay_frac1')
+    parser.add_argument('--weight_decay_frac2',
+                        dest='weight_decay_frac2',
+                        default="1.0e-03",
+                        help='weight_decay_frac2')
     parser.add_argument('--epsilon',
                         dest='epsilon',
                         default=1.0e-10,
                         type=float,
                         help= 'epsilon')
-    parser.add_argument('--rectify',
-                        dest='rectify',
-                        default=True,
-                        help= 'rectify')
-    parser.add_argument('--gradient_clip',
-                        dest='gradient_clip',
-                        type=str,
-                        default="0.2",
-                        help= 'gradient_clip')
-    parser.add_argument('--weight_decay_frac',
-                        dest='weight_decay_frac',
-                        type=str,
-                        help= 'weight_decay_frac')
-    parser.add_argument('--sync_period',
-                        type=int,
-                        dest='sync_period',
-                        help= 'sync_period')
-    parser.add_argument('--slow_step_frac',
-                        type=float,
-                        dest='slow_step_frac',
-                        help= 'slow_step_frac')
     parser.add_argument('--num_heads',
                         dest='num_heads',
                         type=int,
@@ -505,20 +482,15 @@ def parse_args(parser):
                         dest='savefreq',
                         type=int,
                         help= 'savefreq')
-    parser.add_argument('--use_fft_prior',
-                        dest='use_fft_prior',
-                        default="True",
-                        help= 'use_fft_prior')
-    parser.add_argument('--freq_limit_scale',
-                        dest='freq_limit_scale',
-                        type=str,
-                        default="0.07",
-                        help= 'freq_limit')
-    parser.add_argument('--fft_prior_scale',
-                        dest='fft_prior_scale',
-                        type=str,
-                        default="0.5",
-                        help= 'fft_prior_scale')
+    parser.add_argument('--dropout_rate',
+                        dest='dropout_rate',
+                        help= 'dropout_rate')
+    parser.add_argument('--attention_dropout_rate',
+                        dest='attention_dropout_rate',
+                        help= 'attention_dropout_rate')
+    parser.add_argument('--positional_dropout_rate',
+                        dest='positional_dropout_rate',
+                        help= 'positional_dropout_rate')
     parser.add_argument('--total_steps',
                         dest='total_steps',
                         type=int,

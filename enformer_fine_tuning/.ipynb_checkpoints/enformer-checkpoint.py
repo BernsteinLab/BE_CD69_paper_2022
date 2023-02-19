@@ -44,6 +44,9 @@ class Enformer(snt.Module):
                num_transformer_layers: int = 11,
                num_heads: int = 8,
                pooling_type: str = 'attention',
+               dropout_rate: float = 0.40,
+               attention_dropout_rate: float = 0.05,
+               positional_dropout_rate: float = 0.01,
                name: str = 'enformer'):
         """Enformer model.
         Args:
@@ -57,16 +60,16 @@ class Enformer(snt.Module):
         super().__init__(name=name)
         # pylint: disable=g-complex-comprehension,g-long-lambda,cell-var-from-loop
         heads_channels = {'human': 2}
-        dropout_rate = 0.4
+        dropout_rate = dropout_rate
         assert channels % num_heads == 0, ('channels needs to be divisible '
                                            f'by {num_heads}')
         whole_attention_kwargs = {
-            'attention_dropout_rate': 0.05,
+            'attention_dropout_rate': attention_dropout_rate,
             'initializer': None,
             'key_size': 64,
             'num_heads': num_heads,
             'num_relative_position_features': channels // num_heads,
-            'positional_dropout_rate': 0.01,
+            'positional_dropout_rate': positional_dropout_rate,
             'relative_position_functions': [
                 'positional_features_exponential',
                 'positional_features_central_mask',
@@ -134,8 +137,6 @@ class Enformer(snt.Module):
 
         crop_final = TargetLengthCrop1D(TARGET_LENGTH, name='target_input')
 
-        stop_grad = stop_gradient(name='stop_grad')
-
         final_pointwise = Sequential(lambda: [
             conv_block(channels * 2, 1),
             snt.Dropout(dropout_rate / 8),
@@ -151,8 +152,7 @@ class Enformer(snt.Module):
 
     #with tf.name_scope('new_heads'):
         self._new_head = Sequential(
-              lambda: [snt.Linear(4), 
-               tf.nn.softplus],
+              lambda: [snt.Linear(3),tf.nn.softplus],
               name='new_head')
     # pylint: enable=g-complex-comprehension,g-long-lambda,cell-var-from-loop
 
@@ -165,10 +165,9 @@ class Enformer(snt.Module):
         return self._new_head
 
     def __call__(self, inputs: tf.Tensor,
-               is_training: bool) -> tf.Tensor:
-        trunk_embedding = self.trunk(inputs, is_training=is_training)
+                 is_training: bool) -> tf.Tensor:
+        trunk_embedding = self.trunk(inputs,is_training=is_training)
         return self._new_head(trunk_embedding,is_training=is_training)
-
     
     @tf.function(input_signature=[
       tf.TensorSpec([None, SEQUENCE_LENGTH, 4], tf.float32)])
@@ -196,17 +195,6 @@ class TargetLengthCrop1D(snt.Module):
             return inputs
         else:
             return inputs[..., trim:-trim, :]
-
-class stop_gradient(snt.Module):
-    """Crop sequence to match the desired target length."""
-
-    def __init__(self,
-                 name: str = 'stop_grad'):
-        super().__init__(name=name)
-
-    def __call__(self, inputs):
-        return tf.stop_gradient(inputs)
-
 
 class Sequential(snt.Module):
     """snt.Sequential automatically passing is_training where it exists."""
