@@ -23,7 +23,7 @@ Remainder of code is grouped by figure or analysis type.
  - sample ATAC-seq differential accessibility analysis
  - sample RNA-seq differential expression analysis
  - Enformer base importance calculation: 
-  - original model:`enformer_analysis/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores.ipynb`
+  - original model: `enformer_analysis/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores.ipynb`
   - fine tuned model: `enformer_analysis/Enformer_finetuned_gradients_Fig3D_S1D_fine_tuned/Enformer_finetuned_gradients_Fig3D_S1D_fine_tuned.ipynb` 
  - Enformer prediction benchmarking against experimental results for CRISPR-i: 
    - `enformer_analysis/benchmarking_CRISPRi_FigS1D_E`) and BE (`enformer_analysis/benchmarking_BE_FigS2H_I`
