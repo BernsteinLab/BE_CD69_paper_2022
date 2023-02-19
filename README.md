@@ -22,14 +22,19 @@ Remainder of code is grouped by figure or analysis type.
 `data_and_analysis/` contains code for:
  - sample ATAC-seq differential accessibility analysis
  - sample RNA-seq differential expression analysis
- - Enformer original (`enformer_analysis/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores.ipynb`) and fine tuned (`enformer_analysis/Enformer_finetuned_gradients_Fig3D_S1D_fine_tuned/Enformer_finetuned_gradients_Fig3D_S1D_fine_tuned.ipynb)` base importance score calculation
- - Enformer prediction benchmarking against experimental results for CRISPR-i (`enformer_analysis/benchmarking_CRISPRi_FigS1D_E`) and BE (`enformer_analysis/benchmarking_BE_FigS2H_I`) 
- - TFModisco analyses (`enformer_analysis/Enformer_compute_gradients_script_FigS2J.py`, `enformer_analysis/Enformer_TFModisco_FigS2J.py`)
+ - Enformer base importance calculation: 
+  - original model:`enformer_analysis/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores/Enformer_Jurkat_CAGE_gradients_Fig1B_D_Enformer_scores.ipynb`
+  - fine tuned model: `enformer_analysis/Enformer_finetuned_gradients_Fig3D_S1D_fine_tuned/Enformer_finetuned_gradients_Fig3D_S1D_fine_tuned.ipynb` 
+ - Enformer prediction benchmarking against experimental results for CRISPR-i: 
+   - `enformer_analysis/benchmarking_CRISPRi_FigS1D_E`) and BE (`enformer_analysis/benchmarking_BE_FigS2H_I`
+ - TFModisco analyses:
+   - `enformer_analysis/Enformer_compute_gradients_script_FigS2J.py`, `enformer_analysis/Enformer_TFModisco_FigS2J.py`
  
 
 `enformer_fine_tuning` contains: 
  - training scripts and utilities for fine-tuning an Enformer model on stim vs. resting ATAC-seq data and differential
- - note that the checkpoint containing the weights for the best fine-tuned model is available at gs://picard-testing-176520/be_paper_finetuning//models/enformer_fine_tuning_230119_LR15e-05_LR20.001_WD15e-07_WD25e-07_WD25e-07_enformer_fine_tuning_230119/final
+ - note that the checkpoint containing the weights for the best fine-tuned model is available at 
+   - gs://picard-testing-176520/be_paper_finetuning//models/enformer_fine_tuning_230119_LR15e-05_LR20.001_WD15e-07_WD25e-07_WD25e-07_enformer_fine_tuning_230119/final
 
 **required packages**
  - to do
