@@ -34,7 +34,7 @@ Remainder of code is grouped by figure or analysis type.
 `enformer_fine_tuning` contains: 
  - training scripts and utilities for fine-tuning an Enformer model on stim vs. resting ATAC-seq data and differential
  - note that the checkpoint containing the weights for the best fine-tuned model is available at 
-   - gs://picard-testing-176520/be_paper_finetuning//models/enformer_fine_tuning_230119_LR15e-05_LR20.001_WD15e-07_WD25e-07_WD25e-07_enformer_fine_tuning_230119/final
+   - gs://be_paper_2022/finetuning/models/enformer_fine_tuning_230119_LR15e-05_LR20.001_WD15e-07_WD25e-07_WD25e-07_enformer_fine_tuning_230119/final
 
 **required packages**
  - to do
